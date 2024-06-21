@@ -30,6 +30,8 @@ module Make (Connection : S.Connection) = struct
             Header.add_transfer_encoding
               (Option.value ~default:(Header.init ()) headers)
           in
+          let uri = Uri.with_path uri "http://example.com:8082" in
+          print_endline @@ Uri.to_string uri;
           match chunked with
           | None -> cache ?ctx ?headers ?body meth uri
           | Some true ->

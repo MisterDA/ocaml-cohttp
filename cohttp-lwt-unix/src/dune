@@ -15,4 +15,7 @@
   http
   cohttp
   cohttp-lwt
-  logs.fmt))
+  logs.fmt
+  uri
+  uri-sexp
+  sexplib0))

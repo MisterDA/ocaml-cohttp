@@ -52,3 +52,8 @@
  (package cohttp-lwt-unix)
  (action
   (run ./test_client.exe)))
+
+(executable
+ (modules test_client_proxy)
+ (name test_client_proxy)
+ (libraries cohttp_lwt_unix_test cohttp-lwt-unix))

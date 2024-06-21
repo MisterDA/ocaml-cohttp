@@ -18,20 +18,26 @@
  * into some connection-management framework such as andrenth/release *)
 
 open Lwt.Infix
+open Sexplib0.Sexp_conv
 module IO = Io
 
-type ctx = { ctx : Conduit_lwt_unix.ctx; resolver : Resolver_lwt.t }
+type ctx = {
+  ctx : Conduit_lwt_unix.ctx;
+  resolver : Resolver_lwt.t;
+  proxy : Uri_sexp.t option;
+}
 [@@deriving sexp_of]
 
 let init ?(ctx = Lazy.force Conduit_lwt_unix.default_ctx)
-    ?(resolver = Resolver_lwt_unix.system) () =
-  { ctx; resolver }
+    ?(resolver = Resolver_lwt_unix.system) ?proxy () =
+  { ctx; resolver; proxy }
 
 let default_ctx =
   lazy
     {
       resolver = Resolver_lwt_unix.system;
       ctx = Lazy.force Conduit_lwt_unix.default_ctx;
+      proxy = None;
     }
 
 type endp = Conduit.endp
