@@ -32,7 +32,7 @@ module Context = struct
         timeout = None;
       }
     in
-    let rec finished s =
+    let rec finished () =
       match Curl.Multi.remove_finished t.mt with
       | None -> ()
       | Some (h, code) ->
@@ -40,20 +40,20 @@ module Context = struct
           | None -> ()
           | Some w ->
               Hashtbl.remove t.wakeners h;
-              Ivar.fill w code);
-          finished s
+              Ivar.fill_exn w code);
+          finished ()
     in
     let on_readable fd =
       let (_ : int) = Curl.Multi.action t.mt (Fd.file_descr_exn fd) EV_IN in
-      finished "on_readable"
+      finished ()
     in
     let on_writable fd =
       let (_ : int) = Curl.Multi.action t.mt (Fd.file_descr_exn fd) EV_OUT in
-      finished "on_writable"
+      finished ()
     in
     let on_timer () =
       Curl.Multi.action_timeout t.mt;
-      finished "on_timer"
+      finished ()
     in
     Curl.Multi.set_timer_function t.mt (fun timeout ->
         (match t.timeout with
@@ -102,7 +102,7 @@ module Context = struct
         | Some _, true -> ()
         | None, true -> set_event (Some (create_event fd what))
         | Some ivar, false ->
-            Ivar.fill ivar ();
+            Ivar.fill_exn ivar ();
             set_event None
       in
       update current.fd
@@ -168,7 +168,8 @@ module Request = struct
           timeout
       in
       Cohttp_curl.Request.create ?timeout_ms ?headers method_ ~uri ~input
-        ~output ~on_response:(Ivar.fill response_ready)
+        ~output
+        ~on_response:(Ivar.fill_exn response_ready)
     in
     { base; response_ready = Ivar.read response_ready; body_ready }
 end
