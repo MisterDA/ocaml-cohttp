@@ -24,6 +24,9 @@ jobs:
         ocaml-compiler:
           - ocaml-variants.4.14.2+options,ocaml-option-afl
           - ocaml-variants.5.02.0+options,ocaml-option-afl
+        include:
+          - os: windows-latest
+            ocaml-compiler: 5.x
         local-packages:
           - |
             *.opam
@@ -68,6 +71,9 @@ jobs:
         ocaml-compiler:
           - ocaml-variants.4.14.2+options,ocaml-option-afl
           - ocaml-variants.5.02.0+options,ocaml-option-afl
+        include:
+          - os: windows-latest
+            ocaml-compiler: 5.x
         local-packages:
           - |
             *.opam
@@ -115,6 +121,9 @@ jobs:
           - macos-latest
         ocaml-compiler:
           - 5.x
+        include:
+          - os: windows-latest
+            ocaml-compiler: 5.x
         local-packages:
           - |
             http.opam
