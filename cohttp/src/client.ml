@@ -31,6 +31,9 @@ module type S = sig
   val head :
     (?headers:Http.Header.t -> Uri.t -> Http.Response.t io) with_context
 
+  val connect :
+    (?headers:Http.Header.t -> Uri.t -> Http.Response.t io) with_context
+
   val get :
     (?headers:Http.Header.t -> Uri.t -> (Http.Response.t * body) io)
     with_context
@@ -88,6 +91,10 @@ module Make (Base : BASE) (IO : S.IO with type 'a t = 'a Base.io) = struct
   let head =
     map_context call (fun call ?headers uri ->
         call ?headers `HEAD uri >>= fun (response, _body) -> return response)
+
+  let connect =
+    map_context call (fun call ?headers uri ->
+        call ?headers `CONNECT uri >>= fun (response, _body) -> return response)
 
   let patch =
     map_context call (fun call ?body ?chunked ?headers uri ->

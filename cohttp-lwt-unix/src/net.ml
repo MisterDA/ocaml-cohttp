@@ -47,8 +47,7 @@ let resolve ~ctx uri = Resolver_lwt.resolve_uri ~uri ctx.resolver
 let connect_endp ~ctx endp =
   let endp =
     match ctx.proxy with
-    | Some (`GET, proxy) -> resolve ~ctx proxy
-    | Some (`CONNECT, _proxy) -> failwith "unimplemented"
+    | Some (`GET, proxy) | Some (`CONNECT, proxy) -> resolve ~ctx proxy
     | None -> Lwt.return endp
   in
   let ctx = ctx.ctx in

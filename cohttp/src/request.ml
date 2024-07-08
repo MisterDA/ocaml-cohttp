@@ -196,7 +196,13 @@ module Make (IO : S.IO) = struct
       Printf.sprintf "%s %s %s\r\n"
         (Http.Method.to_string req.meth)
         (match req.meth with
-        | `CONNECT -> failwith "unimplemented"
+        | `CONNECT -> (
+            Option.get (Header.get req.headers "host")
+            ^
+            match req.scheme with
+            | Some "https" -> ":443"
+            | Some "http" -> ":80"
+            | Some _ | None -> failwith "Unsupported scheme for CONNECT")
         | `GET ->
             let resource = if req.resource = "" then "/" else req.resource in
             if req.absolute_form then

@@ -26,7 +26,13 @@ let speclist =
 let main ?proxy ~uri () =
   let ctx = Client.custom_ctx ?proxy () in
   (match proxy with
-  | Some (`CONNECT, _proxy) -> failwith "unimplemented"
+  | Some (`CONNECT, _) ->
+      Client.connect ~ctx (Uri.of_string uri) >>= fun resp ->
+      let code = resp |> Response.status |> Code.code_of_status in
+      if not (Code.is_success code) then (
+        Printf.eprintf "Could not setup tunnel. Response code: %d\n" code;
+        exit 1);
+      Lwt.return_unit
   | Some (`GET, _) | _ -> Lwt.return_unit)
   >>= fun () ->
   Client.get ~ctx (Uri.of_string uri) >>= fun (resp, body) ->
