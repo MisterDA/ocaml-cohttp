@@ -45,6 +45,7 @@ type endp = Conduit.endp
 let resolve ~ctx uri = Resolver_lwt.resolve_uri ~uri ctx.resolver
 
 let connect_endp ~ctx endp =
+  Logs.debug (fun f -> f "Connecting endpoint!");
   let endp =
     match ctx.proxy with
     | Some (`GET, proxy) | Some (`CONNECT, proxy) -> resolve ~ctx proxy
