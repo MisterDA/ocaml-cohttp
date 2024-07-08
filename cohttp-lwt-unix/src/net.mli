@@ -16,7 +16,11 @@
 
 (** Basic satisfaction of {!Cohttp_lwt.Net} *)
 
-type ctx = { ctx : Conduit_lwt_unix.ctx; resolver : Resolver_lwt.t }
+type ctx = {
+  ctx : Conduit_lwt_unix.ctx;
+  resolver : Resolver_lwt.t;
+  proxy : ([ `GET | `CONNECT ] * Uri.t) option;
+}
 [@@deriving sexp_of]
 
 include
@@ -25,8 +29,13 @@ include
      and type ctx := ctx
      and type endp = Conduit.endp
 
-val init : ?ctx:Conduit_lwt_unix.ctx -> ?resolver:Resolver_lwt.t -> unit -> ctx
-(** [init ?ctx ?resolver ()] is a network context that is the same as the
+val init :
+  ?ctx:Conduit_lwt_unix.ctx ->
+  ?resolver:Resolver_lwt.t ->
+  ?proxy:[ `GET | `CONNECT ] * Uri.t ->
+  unit ->
+  ctx
+(** [init ?ctx ?resolver ?proxy ()] is a network context that is the same as the
     {!default_ctx}, but with either the connection handling or resolution module
     overridden with [ctx] or [resolver] respectively. This is useful to supply a
     {!Conduit_lwt_unix.resolver} with a custom source network interface, or a

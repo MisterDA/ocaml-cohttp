@@ -62,6 +62,7 @@ module type Net = sig
   (** [connect_endp ~ctx endp] starts a {i flow} to the given [endp]. [endp]
       describes address and protocol of the endpoint to connect to. *)
 
+  val proxy : ctx:ctx -> ([ `GET | `CONNECT ] * Uri_sexp.t) option
   val close_in : IO.ic -> unit
   val close_out : IO.oc -> unit
   val close : IO.ic -> IO.oc -> unit
