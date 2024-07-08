@@ -19,6 +19,7 @@ open Sexplib0.Sexp_conv
 type t = Http.Request.t = {
   headers : Header.t;
   meth : Code.meth;
+  absolute_form : bool;
   scheme : string option;
   resource : string;
   version : Code.version;
@@ -26,7 +27,7 @@ type t = Http.Request.t = {
 }
 [@@deriving sexp]
 
-let compare { headers; meth; scheme; resource; version; encoding } y =
+let compare { headers; meth; scheme; resource; version; encoding; _ } y =
   match Header.compare headers y.headers with
   | 0 -> (
       match Code.compare_method meth y.meth with
@@ -51,7 +52,7 @@ let version t = t.version
 let encoding t = t.encoding
 
 let make ?(meth = `GET) ?(version = `HTTP_1_1) ?(encoding = Transfer.Unknown)
-    ?(headers = Header.init ()) uri =
+    ?(headers = Header.init ()) ?(absolute_form = false) uri =
   let headers =
     Header.add_unless_exists headers "host"
       (match Uri.scheme uri with
@@ -82,7 +83,7 @@ let make ?(meth = `GET) ?(version = `HTTP_1_1) ?(encoding = Transfer.Unknown)
     | Transfer.Unknown -> encoding
     | encoding -> encoding
   in
-  { headers; meth; scheme; resource; version; encoding }
+  { headers; meth; absolute_form; scheme; resource; version; encoding }
 
 let is_keep_alive t = Http.Request.is_keep_alive t
 
@@ -90,14 +91,14 @@ let is_keep_alive t = Http.Request.is_keep_alive t
    adding content headers if appropriate.
    @param chunked Forces chunked encoding
 *)
-let make_for_client ?headers ?(chunked = true) ?(body_length = Int64.zero) meth
-    uri =
+let make_for_client ?headers ?(chunked = true) ?(body_length = Int64.zero)
+    ?absolute_form meth uri =
   let encoding =
     match chunked with
     | true -> Transfer.Chunked
     | false -> Transfer.Fixed body_length
   in
-  make ~meth ~encoding ?headers uri
+  make ~meth ~encoding ?headers ?absolute_form uri
 
 let pp_hum ppf r =
   Format.fprintf ppf "%s" (r |> sexp_of_t |> Sexplib0.Sexp.to_string_hum)
@@ -194,7 +195,17 @@ module Make (IO : S.IO) = struct
     let fst_line =
       Printf.sprintf "%s %s %s\r\n"
         (Http.Method.to_string req.meth)
-        (if req.resource = "" then "/" else req.resource)
+        (match req.meth with
+        | `CONNECT -> failwith "unimplemented"
+        | `GET ->
+            let resource = if req.resource = "" then "/" else req.resource in
+            if req.absolute_form then
+              Option.get req.scheme
+              ^ "://"
+              ^ Option.get (Header.get req.headers "host")
+              ^ resource
+            else resource
+        | _ -> if req.resource = "" then "/" else req.resource)
         (Http.Version.to_string req.version)
     in
     let headers = req.headers in

@@ -27,8 +27,7 @@ let main ?proxy ~uri () =
   let ctx = Client.custom_ctx ?proxy () in
   (match proxy with
   | Some (`CONNECT, _proxy) -> failwith "unimplemented"
-  | Some (`GET, _proxy) -> failwith "unimplemented"
-  | _ -> Lwt.return_unit)
+  | Some (`GET, _) | _ -> Lwt.return_unit)
   >>= fun () ->
   Client.get ~ctx (Uri.of_string uri) >>= fun (resp, body) ->
   let code = resp |> Response.status |> Code.code_of_status in
