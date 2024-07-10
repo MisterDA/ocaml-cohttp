@@ -1,15 +1,7 @@
 exception Retry = Connection.Retry
 
 (** This functor establishes a new connection for each request. *)
-module Make_no_cache (Connection : S.Connection) : sig
-  include S.Connection_cache
-
-  val create : ?ctx:Connection.Net.ctx -> unit -> t
-  (** [create ?ctx ()] creates a connection for handling a single request. The
-      connection accepts only a single request and will automatically be closed
-      as soon as possible.
-      @param ctx See {!Connection.Net.ctx} *)
-end = struct
+module Make_no_cache (Connection : S.Connection) = struct
   module Net = Connection.Net
   module IO = Net.IO
   open IO
@@ -43,36 +35,7 @@ end
 
 (** This functor keeps a cache of connections for reuse. Connections are reused
     based on their remote {!type:Conduit.endp} (effectively IP / port). *)
-module Make (Connection : S.Connection) (Sleep : S.Sleep) : sig
-  include S.Connection_cache
-
-  val create :
-    ?ctx:Connection.Net.ctx ->
-    ?keep:int64 ->
-    ?retry:int ->
-    ?parallel:int ->
-    ?depth:int ->
-    unit ->
-    t
-  (** Create a new connection cache
-
-      @param ctx Conduit context to use. See {!type:Connection.Net.ctx}.
-      @param keep Number of nanoseconds to keep an idle connection around.
-      @param retry
-        Number of times a {e gracefully} failed request is automatically
-        retried. {e graceful} means failed with {!exception:Connection.Retry}.
-        Requests with a [`Stream] {!module:Body} cannot be retried
-        automatically. Such requests will fail with
-        {!exception:Connection.Retry} and a new {!module:Body} will need to be
-        provided to retry.
-      @param parallel
-        maximum number of connections to establish to a single endpoint. Beware:
-        A single hostname may resolve to multiple endpoints. In such a case
-        connections may be created in excess to what was intended.
-      @param depth
-        maximum number of requests to queue and / or send on a single
-        connection. *)
-end = struct
+module Make (Connection : S.Connection) (Sleep : S.Sleep) = struct
   module Net = Connection.Net
   module IO = Net.IO
   open IO
@@ -170,4 +133,49 @@ end = struct
           | e -> Lwt.fail e)
     in
     request self.retry
+end
+
+(** This functor keeps a cache of connections for reuse. Connections are reused
+    based on their remote {!type:Conduit.endp} (effectively IP / port). It also
+    supports automatically connecting and reconnecting to HTTP/HTTPS proxies. *)
+module Make_proxy (Connection : S.Connection) (Sleep : S.Sleep) = struct
+  module Connection_cache = Make (Connection) (Sleep)
+  module Net = Connection.Net
+  module IO = Net.IO
+  open IO
+
+  type t = { ctx : Connection_cache.t; proxy : [ `Direct | `Tunnel ] * Uri.t }
+
+  let create ?ctx ?keep ?retry ?parallel ?depth ~proxy () =
+    if fst proxy = `Tunnel then failwith "Tunneling proxies are unimplemented.";
+    {
+      ctx = Connection_cache.create ?ctx ?keep ?retry ?parallel ?depth ();
+      proxy;
+    }
+
+  let call self ?headers ?body ?absolute_form meth uri =
+    let proxy_uri = snd self.proxy in
+    Net.resolve ~ctx:self.ctx.ctx proxy_uri >>= fun endp ->
+    let absolute_form =
+      Option.value
+        ~default:
+          (fst self.proxy = `Direct
+          && not
+               (meth = `CONNECT
+               || (meth = `OPTIONS && Uri.path_and_query uri = "*")))
+        absolute_form
+    in
+    let rec request retry =
+      Connection_cache.get_connection self.ctx endp >>= fun conn ->
+      Lwt.catch
+        (fun () -> Connection.call conn ?headers ?body ~absolute_form meth uri)
+        (function
+          | Retry -> (
+              match body with
+              | Some (`Stream _) -> Lwt.fail Retry
+              | None | Some `Empty | Some (`String _) | Some (`Strings _) ->
+                  if retry <= 0 then Lwt.fail Retry else request (retry - 1))
+          | e -> Lwt.fail e)
+    in
+    request self.ctx.retry
 end
