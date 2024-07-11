@@ -18,33 +18,48 @@
  * into some connection-management framework such as andrenth/release *)
 
 open Lwt.Infix
+open Sexplib0.Sexp_conv
 module IO = Io
 
-type ctx = { ctx : Conduit_lwt_unix.ctx; resolver : Resolver_lwt.t }
+type ctx = {
+  ctx : Conduit_lwt_unix.ctx;
+  resolver : Resolver_lwt.t;
+  proxy : ([ `GET | `CONNECT ] * Uri_sexp.t) option;
+}
 [@@deriving sexp_of]
 
 let init ?(ctx = Lazy.force Conduit_lwt_unix.default_ctx)
-    ?(resolver = Resolver_lwt_unix.system) () =
-  { ctx; resolver }
+    ?(resolver = Resolver_lwt_unix.system) ?proxy () =
+  { ctx; resolver; proxy }
 
 let default_ctx =
   lazy
     {
       resolver = Resolver_lwt_unix.system;
       ctx = Lazy.force Conduit_lwt_unix.default_ctx;
+      proxy = None;
     }
 
 type endp = Conduit.endp
 
 let resolve ~ctx uri = Resolver_lwt.resolve_uri ~uri ctx.resolver
 
-let connect_endp ~ctx:{ ctx; _ } endp =
+let connect_endp ~ctx endp =
+  Logs.debug (fun f -> f "Connecting endpoint!");
+  let endp =
+    match ctx.proxy with
+    | Some (`GET, proxy) | Some (`CONNECT, proxy) -> resolve ~ctx proxy
+    | None -> Lwt.return endp
+  in
+  let ctx = ctx.ctx in
+  endp >>= fun endp ->
   Conduit_lwt_unix.endp_to_client ~ctx endp >>= fun client ->
   Conduit_lwt_unix.connect ~ctx client >|= fun (flow, ic, oc) ->
   let ic = Input_channel.create ic in
   (flow, ic, oc)
 
 let connect_uri ~ctx uri = resolve ~ctx uri >>= connect_endp ~ctx
+let proxy ~ctx = ctx.proxy
 
 let close c =
   Lwt.catch

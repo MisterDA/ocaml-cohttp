@@ -739,6 +739,7 @@ module Request = struct
   type t = {
     headers : Header.t;  (** HTTP request headers *)
     meth : Method.t;  (** HTTP request method *)
+    absolute_form : bool;
     scheme : string option;  (** URI scheme (http or https) *)
     resource : string;  (** Request path and query *)
     version : Version.t;  (** HTTP version, usually 1.1 *)
@@ -752,7 +753,7 @@ module Request = struct
   let version t = t.version
   let encoding t = t.encoding
 
-  let compare { headers; meth; scheme; resource; version; encoding } y =
+  let compare { headers; meth; scheme; resource; version; encoding; _ } y =
     match Header.compare headers y.headers with
     | 0 -> (
         match Method.compare meth y.meth with
@@ -789,9 +790,9 @@ module Request = struct
     if Method.body_allowed req.meth then Transfer.has_body req.encoding else `No
 
   let make ?(meth = `GET) ?(version = `HTTP_1_1) ?(headers = Header.empty)
-      ?scheme resource =
+      ?scheme ?(absolute_form = false) resource =
     let encoding = Header.get_transfer_encoding headers in
-    { headers; meth; scheme; resource; version; encoding }
+    { headers; meth; scheme; resource; version; absolute_form; encoding }
 
   let pp fmt t =
     let open Format in
@@ -1152,6 +1153,7 @@ module Parser = struct
       scheme = None;
       resource = path;
       version;
+      absolute_form = false;
       encoding = Header.get_transfer_encoding headers;
     }
 

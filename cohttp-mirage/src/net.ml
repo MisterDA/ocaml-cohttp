@@ -24,6 +24,10 @@ struct
 
   let resolve ~ctx uri = R.resolve_uri ~uri ctx.resolver
 
+  let proxy ~ctx =
+    ignore ctx;
+    failwith "unimplemented"
+
   let connect_endp ~ctx endp =
     Endpoint.client ?tls_authenticator:ctx.authenticator endp >>= fun client ->
     match ctx.conduit with

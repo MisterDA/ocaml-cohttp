@@ -159,6 +159,11 @@ struct
     let open Lwt in
     call ?ctx ?headers ~chunked:false `HEAD uri >|= fst
 
+  (* The CONNECT should not have a response body *)
+  let connect ?ctx ?headers uri =
+    let open Lwt in
+    call ?ctx ?headers ~chunked:false `CONNECT uri >|= fst
+
   let get ?ctx ?headers uri = call ?ctx ?headers ~chunked:false `GET uri
 
   let delete ?ctx ?body ?chunked ?headers uri =
