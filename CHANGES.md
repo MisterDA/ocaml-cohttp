@@ -1,5 +1,7 @@
-## Unreleased
+## v6.0.0 (2024-11-21)
 
+- bump minimum dune version to 3.8 (@avsm)
+- cohttp-eio: Use system authenticator in example.
 - http, cohttp: remove the scheme field from requests. This means that
   [Request.uri] no longer returns the same URI as was to create the request
   with [Request.make] (@rgrinberg 1086)
@@ -15,6 +17,7 @@
   `~chunked:true` and `~body_length`.
 - cohttp-lwt-unix: Don't blow up when certificates are not available and no-network requests are made. (akuhlens #1027)
   + Makes `cohttp-lwt.S.default_ctx` lazy. 
+- cohttp-lwt-unix: Add http/https proxy support for client requests (MisterDA #1080)
 
 ## v6.0.0~beta2 (2024-01-05)
 

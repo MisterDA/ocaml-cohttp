@@ -1,10 +1,10 @@
-(lang dune 3.0)
+(lang dune 3.8)
 
 (name cohttp)
 
 (license ISC)
 
-(using mdx 0.2)
+(using mdx 0.4)
 
 (cram enable)
 
@@ -78,6 +78,8 @@
   (lwt
    (>= 5.4.0))
   sexplib0
+  (ipaddr
+   (>= 5.6.0))
   (ppx_sexp_conv
    (>= v0.13.0))
   logs
@@ -103,9 +105,9 @@
   (lwt
    (>= 3.0.0))
   (conduit-lwt
-   (>= 5.0.0))
+   (>= 7.1.0))
   (conduit-lwt-unix
-   (>= 5.0.0))
+   (>= 7.1.0))
   (fmt
    (>= 0.8.2))
   base-unix
@@ -171,7 +173,7 @@
   "An implementation of an HTTP client and server using the Async\nconcurrency library. See the `Cohttp_async` module for information\non how to use this.  The package also installs `cohttp-curl-async`\nand a `cohttp-server-async` binaries for quick uses of a HTTP(S)\nclient and server respectively.\n")
  (depends
   (ocaml
-   (>= 4.14))
+   (and (>= 4.14) (< 5.3.0)))
   (http
    (= :version))
   (cohttp
@@ -190,7 +192,7 @@
   (conduit-async
    (>= 1.2.0))
   magic-mime
-  (mirage-crypto :with-test)
+  (digestif :with-test)
   logs
   (fmt
    (>= 0.8.2))
@@ -264,7 +266,7 @@
  (depends
   (ocaml
    (>= 4.08))
-  ocurl
+  (ocurl (>= 0.9.2))
   (http
    (= :version))
   stringext))
@@ -277,7 +279,7 @@
  (depends
   (ocaml
    (>= 4.08))
-  ocurl
+  (ocurl (>= 0.9.2))
   (http
    (= :version))
   (cohttp-curl
@@ -312,7 +314,7 @@
  (description
   "An HTTP client that relies on Curl + Async for the backend. Does not require\nconduit for SSL.")
  (depends
-  ocurl
+  (ocurl (>= 0.9.2))
   (http
    (= :version))
   stringext
@@ -379,8 +381,10 @@
   (mdx :with-test)
   logs
   uri
-  (tls-eio (and :with-test (>= 0.17.2)))
+  (tls-eio (and :with-test (>= 1.0.0)))
+  (mirage-crypto-rng (and :with-test (< 1.2.0)))
   (mirage-crypto-rng-eio (and :with-test (>= 0.11.2)))
+  (ca-certs (and :with-test  (>= "1.0.0")))
   fmt
   ptime
   (http

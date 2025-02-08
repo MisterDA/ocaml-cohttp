@@ -25,12 +25,13 @@ homepage: "https://github.com/mirage/ocaml-cohttp"
 doc: "https://mirage.github.io/ocaml-cohttp/"
 bug-reports: "https://github.com/mirage/ocaml-cohttp/issues"
 depends: [
-  "dune" {>= "3.0"}
+  "dune" {>= "3.8"}
   "ocaml" {>= "4.08"}
   "http" {= version}
   "cohttp" {= version}
   "lwt" {>= "5.4.0"}
   "sexplib0"
+  "ipaddr" {>= "5.6.0"}
   "ppx_sexp_conv" {>= "v0.13.0"}
   "logs"
   "uri" {>= "2.0.0"}

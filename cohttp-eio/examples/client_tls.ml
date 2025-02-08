@@ -1,15 +1,22 @@
 open Cohttp_eio
 
+let authenticator =
+  match Ca_certs.authenticator () with
+  | Ok x -> x
+  | Error (`Msg m) ->
+      Fmt.failwith "Failed to create system store X509 authenticator: %s" m
+
 let () =
   Logs.set_reporter (Logs_fmt.reporter ());
   Logs_threaded.enable ();
   Logs.Src.set_level Cohttp_eio.src (Some Debug)
 
-let null_auth ?ip:_ ~host:_ _ =
-  Ok None (* Warning: use a real authenticator in your code! *)
-
 let https ~authenticator =
-  let tls_config = Tls.Config.client ~authenticator () in
+  let tls_config =
+    match Tls.Config.client ~authenticator () with
+    | Error (`Msg msg) -> failwith ("tls configuration problem: " ^ msg)
+    | Ok tls_config -> tls_config
+  in
   fun uri raw ->
     let host =
       Uri.host uri
@@ -20,9 +27,7 @@ let https ~authenticator =
 let () =
   Eio_main.run @@ fun env ->
   Mirage_crypto_rng_eio.run (module Mirage_crypto_rng.Fortuna) env @@ fun () ->
-  let client =
-    Client.make ~https:(Some (https ~authenticator:null_auth)) env#net
-  in
+  let client = Client.make ~https:(Some (https ~authenticator)) env#net in
   Eio.Switch.run @@ fun sw ->
   let resp, body =
     Client.get ~sw client (Uri.of_string "https://example.com")
